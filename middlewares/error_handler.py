@@ -12,7 +12,7 @@ class ErrorHandler(BaseHTTPMiddleware):
         super().__init__(app)
         
     # async def dispatch(self, request: Request, call_next) -> Response | JSONResponse:
-    # Adapting code to Rai;way
+    # Adapting code to Railway
     async def dispatch(self, request: Request, call_next) -> Union[Response,JSONResponse]:
         try:
             return await call_next(request)
