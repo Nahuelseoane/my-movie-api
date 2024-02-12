@@ -5,8 +5,9 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from jwt_manager import create_token
 
-from config.database import Session, engine, Base
-from models.movie import Movie as MovieModel
+from config.database import session, engine
+from models.movie import MovieModel, SQLModel
+from sqlmodel import select
 from middlewares.error_handler import ErrorHandler
 from middlewares.jwt_bearer import JWTBearer
 
@@ -16,7 +17,7 @@ app.version = '0.0.1'
 
 app.add_middleware(ErrorHandler)
 
-Base.metadata.create_all(bind=engine)
+SQLModel.metadata.create_all(engine)
 
 class User(BaseModel):
     email:str
@@ -35,7 +36,6 @@ class Movie(BaseModel):
             {
                 "examples":[
                     {
-                    "id": 1,
                     "title": "Mi película",
                     "overview": "Descripción de la película",
                     "year": 2024,
@@ -59,29 +59,32 @@ def login(user: User):
 
 @app.get('/movies', tags=['movies'], response_model=List[Movie], status_code=200, dependencies=[Depends(JWTBearer())])
 def get_movies() -> List[Movie]:
-    db = Session()
-    result = db.query(MovieModel).all()
+    db = session
+    statement = select(MovieModel)
+    result = db.exec(statement).all()
     return JSONResponse(status_code=200, content=jsonable_encoder(result))
 
 @app.get('/movies/{id}', tags=['movies'], response_model=Movie)
 def get_movie(id: int = Path(ge=1, le=2000)) -> Movie:
-    db = Session()
-    result = db.query(MovieModel).filter(MovieModel.id == id).first()
+    db = session
+    statement = select(MovieModel).where(MovieModel.id == id)
+    result = db.exec(statement).first()
     if not result:
         return JSONResponse(status_code=404, content={'message':"No se encontró la pelicula"})
     return JSONResponse(status_code=200, content=jsonable_encoder(result))
 
 @app.get('/movies/', tags=['movies'], response_model=List[Movie])
 def get_movies_by_category(category: str = Query(min_length=5, max_length=15)) -> List[Movie]:
-    db = Session()
-    result = db.query(MovieModel).filter(MovieModel.category == category).all()
+    db = session
+    statement = select(MovieModel).where(MovieModel.category == category)
+    result = db.exec(statement).all()    
     if not result:
         return JSONResponse(status_code=404, content={"message":"No se encontró la categoría"})
     return JSONResponse(status_code=200, content=jsonable_encoder(result))
 
 @app.post('/movies', tags=['movies'], response_model=dict, status_code=201)
 def create_movie(movie: Movie) -> dict:
-    db = Session()
+    db = session
     new_movie = MovieModel(**movie.model_dump())
     db.add(new_movie)
     db.commit() 
@@ -89,8 +92,9 @@ def create_movie(movie: Movie) -> dict:
     
 @app.put('/movies/{id}', tags=['movies'], response_model=dict, status_code=200)
 def update_movie(id: int, movie: Movie) -> dict:
-    db = Session()
-    result = db.query(MovieModel).filter(MovieModel.id==id).first()
+    db = session
+    statement = select(MovieModel).where(MovieModel.id==id)
+    result = db.exec(statement).first()
     if not result:
         return JSONResponse(status_code=404, content={"message":"No existe ese ID"})
     result.title=movie.title
@@ -103,8 +107,9 @@ def update_movie(id: int, movie: Movie) -> dict:
 
 @app.delete('/movies/{id}', tags=['movies'], response_model=dict, status_code=200)
 def delete_movie(id: int) -> dict:
-    db = Session()
-    result = db.query(MovieModel).filter(MovieModel.id==id).first()
+    db = session
+    statement = select(MovieModel).where(MovieModel.id==id)
+    result = db.exec(statement).first()
     if not result:
         return JSONResponse(status_code=404, content={"message":"No se encontró la película para eliminar"})
     db.delete(result)
