@@ -9,6 +9,17 @@ class User(BaseModel):
     email:str
     password:str
 
+    model_config = {
+        "json_schema_extra":
+            {
+                "examples":[
+                    {
+                    "email": "admin@gmail.com",
+                    "password": "admin"
+                    }
+                ]
+            }
+    }
 @user_router.post('/login', tags=['auth'])
 def login(user: User):
     if user.email == "admin@gmail.com" and user.password == "admin":
