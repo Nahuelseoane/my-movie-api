@@ -4,8 +4,6 @@ from fastapi import Path, Query, Depends
 from fastapi.encoders import jsonable_encoder
 from typing import List
 from config.database import session
-from models.movie import MovieModel
-from sqlmodel import select
 from middlewares.jwt_bearer import JWTBearer
 from services.movie import MovieService
 from schemas.movie import Movie
